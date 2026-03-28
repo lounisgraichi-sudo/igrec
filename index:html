@@ -1,0 +1,746 @@
+import React, { useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+
+type PageKey = "home" | "quote" | "packages" | "admin";
+type PortfolioCategory = "weddings" | "business";
+type WeddingView = "videos" | "images";
+type ProgramType = "apres-midi" | "soiree";
+
+type BasePack = { id: string; name: string; price: number };
+type OptionItem = { id: string; name: string; price: number };
+type PackageItem = {
+  id: string;
+  name: string;
+  price: string;
+  description: string;
+  features: string[];
+};
+type PortfolioItem = {
+  id: string;
+  title: string;
+  category: PortfolioCategory;
+  type: "video" | "image";
+  label: string;
+  src: string;
+};
+
+const PHONE_NUMBER = "213561109316";
+
+const formatDA = (value: number) => `${value.toLocaleString("fr-FR")} DA`;
+
+const fieldClassName =
+  "h-16 rounded-3xl border border-white/20 bg-white/10 px-5 text-white placeholder:text-white/50 shadow-lg backdrop-blur-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-white/40";
+
+const areaClassName =
+  "min-h-[130px] rounded-3xl border border-white/20 bg-white/10 px-5 py-4 text-white placeholder:text-white/50 shadow-lg backdrop-blur-xl resize-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-white/40";
+
+const cardButtonBase =
+  "w-full rounded-3xl border p-4 text-left shadow-lg backdrop-blur-xl transition-all duration-200";
+
+const inactiveCardClass =
+  "border-white/15 bg-white/10 text-white hover:bg-white/15";
+
+const activeCardClass =
+  "border-white bg-white text-black shadow-[0_0_0_2px_rgba(255,255,255,0.92),0_18px_40px_rgba(255,255,255,0.14)]";
+
+const navButtonClass =
+  "rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15";
+
+const defaultBasePacks: BasePack[] = [
+  { id: "multicameras", name: "Multicaméras", price: 150000 },
+  { id: "reception", name: "Réception", price: 130000 },
+  { id: "simple", name: "Mariage simple", price: 120000 },
+];
+
+const defaultCortegeOptions: OptionItem[] = [
+  { id: "simple", name: "Cortège simple", price: 30000 },
+  { id: "multicamera", name: "Cortège multicaméra", price: 40000 },
+];
+
+const defaultQuoteOptions: OptionItem[] = [
+  { id: "drone", name: "Drone", price: 30000 },
+  { id: "preparatifs", name: "Préparatifs", price: 15000 },
+  { id: "preparatifs_plus", name: "Préparatifs +", price: 20000 },
+  { id: "extra_camera", name: "Caméra +", price: 30000 },
+  { id: "projection", name: "Projection", price: 25000 },
+  { id: "direct", name: "Live", price: 35000 },
+  { id: "ecran", name: "Écran", price: 60000 },
+];
+
+const defaultPackages: PackageItem[] = [
+  {
+    id: "reception",
+    name: "Réception / Circoncision",
+    price: "130 000 DA",
+    description: "Une formule claire pour une réception ou une circoncision, en après-midi ou en soirée.",
+    features: [
+      "01 caméra en mouvement",
+      "01 caméra fixe",
+      "Présentation du lieu",
+      "Préparatifs + shooting photo/vidéo",
+      "200 à 600 photos retouchées",
+      "Film final 1h30 à 3h",
+      "Book photo grand format 10 pages",
+      "Clé USB 3.0 32GB",
+    ],
+  },
+  {
+    id: "simple",
+    name: "Mariage simple",
+    price: "120 000 DA",
+    description: "Une formule mariage simple sans cortège, pensée pour une couverture propre et complète.",
+    features: [
+      "01 caméra en mouvement",
+      "Présentation du lieu",
+      "Préparatifs + shooting photo/vidéo",
+      "400 à 800 photos retouchées",
+      "Film final 1h30 à 3h",
+      "Book photo grand format 10 pages",
+      "Clé USB 3.0 32GB",
+    ],
+  },
+  {
+    id: "multicameras",
+    name: "Multicaméras",
+    price: "150 000 DA",
+    description: "La formule la plus complète, sans cortège, pour une couverture renforcée en après-midi ou en soirée.",
+    features: [
+      "01 caméra en mouvement",
+      "01 caméra fixe",
+      "Présentation du lieu",
+      "Préparatifs + shooting photo & vidéo",
+      "Jusqu'à 1000 photos retouchées",
+      "Shooting photo artistique en fin de soirée",
+      "Film final 1h30 à 3h",
+      "Book photo grand format 10 pages",
+      "Clé USB 3.0 32GB",
+    ],
+  },
+];
+
+const defaultPortfolio: PortfolioItem[] = [
+  {
+    id: "w1",
+    title: "Wedding Film 01",
+    category: "weddings",
+    type: "video",
+    label: "Film de mariage",
+    src: "https://samplelib.com/lib/preview/mp4/sample-5s.mp4",
+  },
+  {
+    id: "w2",
+    title: "Wedding Film 02",
+    category: "weddings",
+    type: "video",
+    label: "Film de mariage",
+    src: "https://samplelib.com/lib/preview/mp4/sample-10s.mp4",
+  },
+  {
+    id: "w3",
+    title: "Wedding Gallery 01",
+    category: "weddings",
+    type: "image",
+    label: "Galerie mariage",
+    src: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=1200&auto=format&fit=crop",
+  },
+  {
+    id: "w4",
+    title: "Wedding Gallery 02",
+    category: "weddings",
+    type: "image",
+    label: "Galerie mariage",
+    src: "https://images.unsplash.com/photo-1520854221256-17451cc331bf?q=80&w=1200&auto=format&fit=crop",
+  },
+  {
+    id: "b1",
+    title: "Brand Film 01",
+    category: "business",
+    type: "video",
+    label: "Vidéo publicité",
+    src: "https://samplelib.com/lib/preview/mp4/sample-15s.mp4",
+  },
+  {
+    id: "b2",
+    title: "Brand Film 02",
+    category: "business",
+    type: "video",
+    label: "Vidéo entreprise",
+    src: "https://samplelib.com/lib/preview/mp4/sample-20s.mp4",
+  },
+  {
+    id: "b3",
+    title: "Campaign Visual 01",
+    category: "business",
+    type: "image",
+    label: "Visuel publicité",
+    src: "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?q=80&w=1200&auto=format&fit=crop",
+  },
+  {
+    id: "b4",
+    title: "Campaign Visual 02",
+    category: "business",
+    type: "image",
+    label: "Visuel entreprise",
+    src: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?q=80&w=1200&auto=format&fit=crop",
+  },
+];
+
+function EditablePriceList({
+  title,
+  items,
+  onChange,
+}: {
+  title: string;
+  items: OptionItem[];
+  onChange: (items: OptionItem[]) => void;
+}) {
+  const updateItem = (id: string, key: "name" | "price", value: string) => {
+    onChange(
+      items.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              [key]: key === "price" ? Number(value || 0) : value,
+            }
+          : item
+      )
+    );
+  };
+
+  return (
+    <Card className="rounded-[28px] border border-white/10 bg-white/10 shadow-xl backdrop-blur-xl">
+      <CardContent className="space-y-4 p-5">
+        <h3 className="text-lg font-semibold text-white">{title}</h3>
+        <div className="space-y-3">
+          {items.map((item) => (
+            <div key={item.id} className="grid gap-3 md:grid-cols-[1fr_180px]">
+              <Input className={fieldClassName} value={item.name} onChange={(e) => updateItem(item.id, "name", e.target.value)} />
+              <Input className={fieldClassName} type="number" value={item.price} onChange={(e) => updateItem(item.id, "price", e.target.value)} />
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function IgreczWebsite() {
+  const [currentPage, setCurrentPage] = useState<PageKey>("home");
+  const [portfolioCategory, setPortfolioCategory] = useState<PortfolioCategory>("weddings");
+  const [weddingView, setWeddingView] = useState<WeddingView>("videos");
+
+  const [basePacks, setBasePacks] = useState<BasePack[]>(defaultBasePacks);
+  const [cortegeOptions, setCortegeOptions] = useState<OptionItem[]>(defaultCortegeOptions);
+  const [quoteOptions, setQuoteOptions] = useState<OptionItem[]>(defaultQuoteOptions);
+  const [packages, setPackages] = useState<PackageItem[]>(defaultPackages);
+  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>(defaultPortfolio);
+
+  const [clientName, setClientName] = useState("");
+  const [date, setDate] = useState("");
+  const [location, setLocation] = useState("");
+  const [program, setProgram] = useState<ProgramType>("apres-midi");
+  const [base, setBase] = useState(defaultBasePacks[0].id);
+  const [hasCortege, setHasCortege] = useState(false);
+  const [cortege, setCortege] = useState(defaultCortegeOptions[0].id);
+  const [opts, setOpts] = useState<string[]>([]);
+  const [notes, setNotes] = useState("");
+
+  const [heroTitle, setHeroTitle] = useState("IGRECZ");
+  const [heroSubtitle, setHeroSubtitle] = useState(
+    "Une signature visuelle pour les mariages, les entreprises et les campagnes qui veulent être vues avec justesse."
+  );
+  const [aboutText, setAboutText] = useState(
+    "IGRECZ est un studio de photographie et vidéographie basé en Algérie, reconnu pour sa maîtrise de l’image dans le mariage, l’événementiel, la publicité et les contenus de marque. Notre approche repose sur la précision, l’élégance et la capacité à créer un résultat fort, durable et cohérent avec l’identité de chaque projet."
+  );
+  const [bannerLabel, setBannerLabel] = useState("Bannière à remplacer");
+
+  const [newPortfolioTitle, setNewPortfolioTitle] = useState("");
+  const [newPortfolioLabel, setNewPortfolioLabel] = useState("");
+  const [newPortfolioSrc, setNewPortfolioSrc] = useState("");
+  const [newPortfolioCategory, setNewPortfolioCategory] = useState<PortfolioCategory>("weddings");
+  const [newPortfolioType, setNewPortfolioType] = useState<"video" | "image">("image");
+
+  const baseObj = basePacks.find((item) => item.id === base) || basePacks[0];
+  const cortegeObj = hasCortege ? cortegeOptions.find((item) => item.id === cortege) || cortegeOptions[0] : null;
+  const optObjs = quoteOptions.filter((item) => opts.includes(item.id));
+
+  const total = useMemo(() => {
+    const optionsTotal = optObjs.reduce((sum, item) => sum + item.price, 0);
+    return baseObj.price + (cortegeObj ? cortegeObj.price : 0) + optionsTotal;
+  }, [baseObj, cortegeObj, optObjs]);
+
+  const toggleOption = (id: string) => {
+    setOpts((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+  };
+
+  const quoteLines = [
+    `Nom : ${clientName || "-"}`,
+    `Date : ${date || "-"}`,
+    `Lieu : ${location || "-"}`,
+    `Programme : ${program === "apres-midi" ? "Après-midi" : "Soirée"}`,
+    `Formule : ${baseObj.name} - ${formatDA(baseObj.price)}`,
+    hasCortege && cortegeObj ? `Cortège : ${cortegeObj.name} - ${formatDA(cortegeObj.price)}` : "Cortège : Sans cortège",
+    ...optObjs.map((item) => `Option : ${item.name} - ${formatDA(item.price)}`),
+    `Total : ${formatDA(total)}`,
+    notes ? `Précisions : ${notes}` : null,
+  ].filter(Boolean) as string[];
+
+  const whatsappHref = `https://wa.me/${PHONE_NUMBER}?text=${encodeURIComponent(quoteLines.join("\n"))}`;
+
+  const filteredPortfolio = portfolioItems.filter((item) => {
+    if (portfolioCategory === "weddings") {
+      return item.category === "weddings" && item.type === (weddingView === "videos" ? "video" : "image");
+    }
+    return item.category === "business";
+  });
+
+  const updatePortfolioItem = (id: string, key: keyof PortfolioItem, value: string) => {
+    setPortfolioItems((prev) => prev.map((item) => (item.id === id ? { ...item, [key]: value } : item)));
+  };
+
+  const addPortfolioItem = () => {
+    if (!newPortfolioTitle.trim() || !newPortfolioSrc.trim()) return;
+
+    const newItem: PortfolioItem = {
+      id: `p${Date.now()}`,
+      title: newPortfolioTitle.trim(),
+      label: newPortfolioLabel.trim() || (newPortfolioType === "video" ? "Nouveau média vidéo" : "Nouvelle image"),
+      src: newPortfolioSrc.trim(),
+      category: newPortfolioCategory,
+      type: newPortfolioType,
+    };
+
+    setPortfolioItems((prev) => [newItem, ...prev]);
+    setNewPortfolioTitle("");
+    setNewPortfolioLabel("");
+    setNewPortfolioSrc("");
+    setNewPortfolioCategory("weddings");
+    setNewPortfolioType("image");
+  };
+
+  const removePortfolioItem = (id: string) => {
+    setPortfolioItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const updatePackage = (id: string, key: "name" | "price" | "description", value: string) => {
+    setPackages((prev) => prev.map((item) => (item.id === id ? { ...item, [key]: value } : item)));
+  };
+
+  const updatePackageFeatures = (id: string, value: string) => {
+    setPackages((prev) => prev.map((item) => (item.id === id ? { ...item, features: value.split("\n").map((line) => line.trim()).filter(Boolean) } : item)));
+  };
+
+  const renderPortfolio = () => (
+    <section className="space-y-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-sm uppercase tracking-[0.28em] text-white/45">Portfolio</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight md:text-5xl">Une sélection claire.</h2>
+        </div>
+        <div className="flex gap-3">
+          <button type="button" onClick={() => setPortfolioCategory("weddings")} className={`${navButtonClass} ${portfolioCategory === "weddings" ? "bg-white text-black" : ""}`}>Weddings</button>
+          <button type="button" onClick={() => setPortfolioCategory("business")} className={`${navButtonClass} ${portfolioCategory === "business" ? "bg-white text-black" : ""}`}>Business / Ads</button>
+        </div>
+      </div>
+
+      {portfolioCategory === "weddings" && (
+        <div className="flex gap-3">
+          <button type="button" onClick={() => setWeddingView("videos")} className={`${navButtonClass} ${weddingView === "videos" ? "bg-white text-black" : ""}`}>Videos</button>
+          <button type="button" onClick={() => setWeddingView("images")} className={`${navButtonClass} ${weddingView === "images" ? "bg-white text-black" : ""}`}>Images</button>
+        </div>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {filteredPortfolio.map((item) => (
+          <motion.div key={item.id} whileHover={{ y: -4 }}>
+            <Card className="overflow-hidden rounded-[28px] border border-white/10 bg-white/8 shadow-xl backdrop-blur-xl">
+              <CardContent className="p-0">
+                <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-white/10 to-white/5">
+                  {item.type === "image" ? (
+                    <img src={item.src} alt={item.title} className="h-full w-full object-cover" />
+                  ) : (
+                    <video src={item.src} className="h-full w-full object-cover" muted loop playsInline autoPlay />
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-5">
+                    <p className="text-xs uppercase tracking-[0.22em] text-white/50">{item.label}</p>
+                    <h3 className="mt-2 text-lg font-semibold text-white">{item.title}</h3>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+
+  const renderQuotePage = () => (
+    <section className="space-y-6">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-sm uppercase tracking-[0.28em] text-white/45">Devis</p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight md:text-5xl">Construire le devis.</h2>
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <Card className="overflow-hidden rounded-[32px] border border-white/10 bg-white/10 shadow-2xl backdrop-blur-2xl">
+          <CardContent className="space-y-7 p-5 md:p-8">
+            <div className="grid gap-4">
+              <Input className={fieldClassName} placeholder="Nom du client" value={clientName} onChange={(e) => setClientName(e.target.value)} />
+              <Input className={fieldClassName} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <Input className={fieldClassName} placeholder="Lieu du mariage" value={location} onChange={(e) => setLocation(e.target.value)} />
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-white/85">Programme</Label>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { id: "apres-midi", label: "Après-midi" },
+                  { id: "soiree", label: "Soirée" },
+                ].map((item) => {
+                  const isActive = program === item.id;
+                  return (
+                    <motion.button key={item.id} type="button" whileTap={{ scale: 0.97 }} onClick={() => setProgram(item.id as ProgramType)} className={`rounded-3xl border px-5 py-4 text-sm font-semibold shadow-lg backdrop-blur-xl transition-all duration-200 ${isActive ? activeCardClass : inactiveCardClass}`}>
+                      {item.label}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-white/85">Formule</Label>
+              <div className="space-y-3">
+                {basePacks.map((item) => {
+                  const isActive = base === item.id;
+                  return (
+                    <motion.button key={item.id} type="button" whileTap={{ scale: 0.985 }} onClick={() => setBase(item.id)} className={`${cardButtonBase} flex items-center justify-between ${isActive ? activeCardClass : inactiveCardClass}`}>
+                      <span className="text-base font-semibold md:text-lg">{item.name}</span>
+                      <span className={`text-sm font-normal ${isActive ? "text-black/70" : "text-white/95"}`}>{formatDA(item.price)}</span>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-white/85">Cortège</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <motion.button type="button" whileTap={{ scale: 0.97 }} onClick={() => setHasCortege(false)} className={`rounded-3xl border px-5 py-4 text-sm font-semibold shadow-lg backdrop-blur-xl transition-all duration-200 ${!hasCortege ? activeCardClass : inactiveCardClass}`}>Sans cortège</motion.button>
+                <motion.button type="button" whileTap={{ scale: 0.97 }} onClick={() => setHasCortege(true)} className={`rounded-3xl border px-5 py-4 text-sm font-semibold shadow-lg backdrop-blur-xl transition-all duration-200 ${hasCortege ? activeCardClass : inactiveCardClass}`}>Avec cortège</motion.button>
+              </div>
+
+              {hasCortege && (
+                <div className="grid gap-3">
+                  {cortegeOptions.map((item) => {
+                    const isActive = cortege === item.id;
+                    return (
+                      <motion.button key={item.id} type="button" whileTap={{ scale: 0.985 }} onClick={() => setCortege(item.id)} className={`${cardButtonBase} flex items-center justify-between ${isActive ? activeCardClass : inactiveCardClass}`}>
+                        <span className="font-semibold">{item.name}</span>
+                        <span className={`text-sm font-normal ${isActive ? "text-black/70" : "text-white/95"}`}>{formatDA(item.price)}</span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-white/85">Options</Label>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {quoteOptions.map((item) => {
+                  const isActive = opts.includes(item.id);
+                  return (
+                    <motion.button key={item.id} type="button" whileTap={{ scale: 0.98 }} onClick={() => toggleOption(item.id)} className={`${cardButtonBase} ${isActive ? activeCardClass : inactiveCardClass}`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="text-sm font-semibold leading-5">{item.name}</span>
+                        <span className={`whitespace-nowrap text-xs font-normal ${isActive ? "text-black/70" : "text-white/80"}`}>{formatDA(item.price)}</span>
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <Textarea className={areaClassName} placeholder="Précisions" value={notes} onChange={(e) => setNotes(e.target.value)} />
+
+            <a href={whatsappHref} target="_blank" rel="noreferrer" className="block">
+              <Button className="h-16 w-full rounded-3xl border border-white/20 bg-white text-base font-medium text-black shadow-lg transition hover:bg-white/90">Recevoir mon devis</Button>
+            </a>
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden rounded-[32px] border border-white/10 bg-white/95 text-black shadow-2xl">
+          <CardContent className="p-0">
+            <div className="border-b border-black/10 px-6 pb-5 pt-6 md:px-8 md:pt-8">
+              <p className="text-xs uppercase tracking-[0.28em] text-black/45">Devis</p>
+              <div className="mt-4 grid gap-2 text-sm font-semibold text-black/85 md:grid-cols-2">
+                <p><span className="font-semibold text-black/55">Nom :</span> {clientName || "—"}</p>
+                <p><span className="font-semibold text-black/55">Date :</span> {date || "—"}</p>
+                <p className="md:col-span-2"><span className="font-semibold text-black/55">Lieu :</span> {location || "—"}</p>
+                <p><span className="font-semibold text-black/55">Programme :</span> {program === "apres-midi" ? "Après-midi" : "Soirée"}</p>
+                <p><span className="font-semibold text-black/55">Cortège :</span> {hasCortege ? "Oui" : "Non"}</p>
+              </div>
+            </div>
+            <div className="px-4 py-4 md:px-8 md:py-6">
+              <div className="overflow-hidden rounded-[28px] border border-black/10 bg-black/5">
+                <table className="w-full text-left">
+                  <thead className="bg-black/5 text-[11px] uppercase tracking-[0.18em] text-black/45">
+                    <tr>
+                      <th className="px-4 py-4 font-medium md:px-5">Prestation</th>
+                      <th className="px-4 py-4 text-right font-medium md:px-5">Montant</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-t border-black/10 bg-white/80">
+                      <td className="px-4 py-4 text-sm font-semibold text-black/90 md:px-5">{baseObj.name}</td>
+                      <td className="px-4 py-4 text-right text-sm text-black/65 md:px-5">{formatDA(baseObj.price)}</td>
+                    </tr>
+                    {hasCortege && cortegeObj && (
+                      <tr className="border-t border-black/10 bg-white/80">
+                        <td className="px-4 py-4 text-sm font-semibold text-black/90 md:px-5">{cortegeObj.name}</td>
+                        <td className="px-4 py-4 text-right text-sm text-black/65 md:px-5">{formatDA(cortegeObj.price)}</td>
+                      </tr>
+                    )}
+                    {optObjs.map((item) => (
+                      <tr key={item.id} className="border-t border-black/10 bg-white/80">
+                        <td className="px-4 py-4 text-sm font-semibold text-black/85 md:px-5">{item.name}</td>
+                        <td className="px-4 py-4 text-right text-sm text-black/65 md:px-5">{formatDA(item.price)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t border-black/10 bg-black text-white">
+                      <td className="px-4 py-5 text-base font-semibold md:px-5">Total</td>
+                      <td className="px-4 py-5 text-right text-base font-semibold md:px-5">{formatDA(total)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </section>
+  );
+
+  const renderPackages = () => (
+    <section className="space-y-8">
+      <div>
+        <p className="text-sm uppercase tracking-[0.28em] text-white/45">Packages</p>
+        <h2 className="mt-2 text-3xl font-semibold tracking-tight md:text-5xl">Des formules claires.</h2>
+      </div>
+      <div className="grid gap-5 lg:grid-cols-3">
+        {packages.map((item) => (
+          <Card key={item.id} className="rounded-[28px] border border-white/10 bg-white/8 shadow-xl backdrop-blur-xl">
+            <CardContent className="space-y-6 p-6">
+              <div>
+                <p className="text-sm uppercase tracking-[0.22em] text-white/45">{item.name}</p>
+                <p className="mt-3 text-2xl font-semibold text-white">{item.price}</p>
+                <p className="mt-3 text-sm leading-6 text-white/70">{item.description}</p>
+              </div>
+              <div className="space-y-3">
+                {item.features.map((feature, index) => (
+                  <div key={index} className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3 text-sm text-white/85">{feature}</div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </section>
+  );
+
+  const renderAdmin = () => (
+    <section className="space-y-6">
+      <div>
+        <p className="text-sm uppercase tracking-[0.28em] text-white/45">Admin</p>
+        <h2 className="mt-2 text-3xl font-semibold tracking-tight md:text-5xl">Dashboard de modification</h2>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="rounded-[28px] border border-white/10 bg-white/10 shadow-xl backdrop-blur-xl">
+          <CardContent className="space-y-4 p-5">
+            <h3 className="text-lg font-semibold text-white">Contenu d’accueil</h3>
+            <Input className={fieldClassName} value={heroTitle} onChange={(e) => setHeroTitle(e.target.value)} />
+            <Textarea className={areaClassName} value={heroSubtitle} onChange={(e) => setHeroSubtitle(e.target.value)} />
+            <Textarea className={areaClassName} value={aboutText} onChange={(e) => setAboutText(e.target.value)} />
+            <Input className={fieldClassName} value={bannerLabel} onChange={(e) => setBannerLabel(e.target.value)} />
+          </CardContent>
+        </Card>
+
+        <EditablePriceList title="Formules de devis" items={basePacks.map((item) => ({ ...item }))} onChange={(items) => setBasePacks(items.map((item) => ({ ...item })))} />
+        <EditablePriceList title="Options cortège" items={cortegeOptions} onChange={setCortegeOptions} />
+        <EditablePriceList title="Options additionnelles" items={quoteOptions} onChange={setQuoteOptions} />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {packages.map((item) => (
+          <Card key={item.id} className="rounded-[28px] border border-white/10 bg-white/10 shadow-xl backdrop-blur-xl">
+            <CardContent className="space-y-4 p-5">
+              <h3 className="text-lg font-semibold text-white">Package {item.name}</h3>
+              <Input className={fieldClassName} value={item.name} onChange={(e) => updatePackage(item.id, "name", e.target.value)} />
+              <Input className={fieldClassName} value={item.price} onChange={(e) => updatePackage(item.id, "price", e.target.value)} />
+              <Textarea className={areaClassName} value={item.description} onChange={(e) => updatePackage(item.id, "description", e.target.value)} />
+              <Textarea className={areaClassName} value={item.features.join("\n")} onChange={(e) => updatePackageFeatures(item.id, e.target.value)} />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="rounded-[28px] border border-white/10 bg-white/10 shadow-xl backdrop-blur-xl">
+        <CardContent className="space-y-4 p-5">
+          <h3 className="text-lg font-semibold text-white">Portfolio</h3>
+
+          <div className="grid gap-3 rounded-[24px] border border-white/10 bg-white/5 p-4 md:grid-cols-2">
+            <Input className={fieldClassName} placeholder="Titre" value={newPortfolioTitle} onChange={(e) => setNewPortfolioTitle(e.target.value)} />
+            <Input className={fieldClassName} placeholder="Label" value={newPortfolioLabel} onChange={(e) => setNewPortfolioLabel(e.target.value)} />
+            <Input className={fieldClassName} placeholder="URL image ou vidéo" value={newPortfolioSrc} onChange={(e) => setNewPortfolioSrc(e.target.value)} />
+            <div className="grid grid-cols-2 gap-3">
+              <button type="button" onClick={() => setNewPortfolioCategory("weddings")} className={`${navButtonClass} ${newPortfolioCategory === "weddings" ? "bg-white text-black" : ""}`}>Weddings</button>
+              <button type="button" onClick={() => setNewPortfolioCategory("business")} className={`${navButtonClass} ${newPortfolioCategory === "business" ? "bg-white text-black" : ""}`}>Business</button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 md:col-span-2">
+              <button type="button" onClick={() => setNewPortfolioType("image")} className={`${navButtonClass} ${newPortfolioType === "image" ? "bg-white text-black" : ""}`}>Image</button>
+              <button type="button" onClick={() => setNewPortfolioType("video")} className={`${navButtonClass} ${newPortfolioType === "video" ? "bg-white text-black" : ""}`}>Vidéo</button>
+            </div>
+            <div className="md:col-span-2">
+              <Button className="h-14 w-full rounded-3xl bg-white text-black hover:bg-white/90" onClick={addPortfolioItem}>Ajouter image / vidéo</Button>
+            </div>
+          </div>
+
+          <div className="grid gap-3">
+            {portfolioItems.map((item) => (
+              <div key={item.id} className="grid gap-3 rounded-[24px] border border-white/10 bg-white/5 p-4 md:grid-cols-[1.2fr_1fr_180px_180px]">
+                <Input className={fieldClassName} value={item.title} onChange={(e) => updatePortfolioItem(item.id, "title", e.target.value)} />
+                <Input className={fieldClassName} value={item.label} onChange={(e) => updatePortfolioItem(item.id, "label", e.target.value)} />
+                <Input className={fieldClassName} value={item.type} onChange={(e) => updatePortfolioItem(item.id, "type", e.target.value as "video" | "image")} />
+                <Input className={fieldClassName} value={item.src} onChange={(e) => updatePortfolioItem(item.id, "src", e.target.value)} />
+                <div className="md:col-span-4 flex justify-end">
+                  <Button variant="outline" className="rounded-full border-red-400/30 bg-red-500/10 text-red-200 hover:bg-red-500/20" onClick={() => removePortfolioItem(item.id)}>Supprimer</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </section>
+  );
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-black to-slate-900 text-white">
+      <div className="mx-auto max-w-7xl px-4 py-4 md:px-6 md:py-6">
+        <header className="sticky top-4 z-20 mb-8 rounded-full border border-white/10 bg-black/35 px-4 py-3 shadow-2xl backdrop-blur-2xl">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.28em] text-white/75">IGRECZ</p>
+            </div>
+            <nav className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => setCurrentPage("home")} className={`${navButtonClass} ${currentPage === "home" ? "bg-white text-black" : ""}`}>Accueil</button>
+              <button type="button" onClick={() => setCurrentPage("quote")} className={`${navButtonClass} ${currentPage === "quote" ? "bg-white text-black" : ""}`}>Devis</button>
+              <button type="button" onClick={() => setCurrentPage("packages")} className={`${navButtonClass} ${currentPage === "packages" ? "bg-white text-black" : ""}`}>Packages</button>
+              <button type="button" onClick={() => setCurrentPage("admin")} className={`${navButtonClass} ${currentPage === "admin" ? "bg-white text-black" : ""}`}>Admin</button>
+            </nav>
+          </div>
+        </header>
+
+        {currentPage === "home" && (
+          <div className="space-y-16 pb-16">
+            <section className="relative overflow-hidden rounded-[40px] border border-white/10 shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
+              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1800&auto=format&fit=crop')] bg-cover bg-center" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/55 to-black/35" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_28%)]" />
+              <div className="relative grid min-h-[72vh] items-end gap-8 p-6 md:p-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:p-14">
+                <div className="space-y-6">
+                  <div className="inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-white/80 backdrop-blur-xl">Studio photo & vidéo</div>
+                  <div className="space-y-4">
+                    <h1 className="max-w-4xl text-5xl font-semibold tracking-[-0.04em] text-white md:text-7xl">{heroTitle}</h1>
+                    <p className="max-w-2xl text-base leading-7 text-white/80 md:text-lg">{heroSubtitle}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    <Button className="h-12 rounded-full bg-white px-6 text-black hover:bg-white/90" onClick={() => setCurrentPage("quote")}>Voir le devis</Button>
+                    <Button variant="outline" className="h-12 rounded-full border-white/20 bg-black/20 px-6 text-white backdrop-blur-xl hover:bg-white/10" onClick={() => setCurrentPage("packages")}>Voir les packages</Button>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 self-end lg:self-center">
+                  <Card className="overflow-hidden rounded-[30px] border border-white/10 bg-white/10 shadow-2xl backdrop-blur-2xl">
+                    <CardContent className="space-y-5 p-6">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.24em] text-white/55">Signature</p>
+                        <h2 className="mt-3 text-2xl font-semibold text-white">{bannerLabel}</h2>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur-xl">
+                          <p className="text-xs uppercase tracking-[0.18em] text-white/50">Mariage</p>
+                          <p className="mt-2 text-sm leading-6 text-white/80">Présence, maîtrise et mémoire durable.</p>
+                        </div>
+                        <div className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur-xl">
+                          <p className="text-xs uppercase tracking-[0.18em] text-white/50">Publicité</p>
+                          <p className="mt-2 text-sm leading-6 text-white/80">Image forte pour marques et entreprises.</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </section>
+
+            <section className="grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
+              <Card className="overflow-hidden rounded-[34px] border border-white/10 bg-gradient-to-br from-white/10 to-white/5 shadow-xl backdrop-blur-2xl">
+                <CardContent className="space-y-5 p-6 md:p-8">
+                  <p className="text-sm uppercase tracking-[0.28em] text-white/45">À propos</p>
+                  <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">Présence. Maîtrise. Résultat.</h2>
+                  <p className="text-base leading-7 text-white/78">{aboutText}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid gap-6 md:grid-cols-2">
+                <button type="button" className="group overflow-hidden rounded-[34px] border border-white/10 bg-white/8 text-left shadow-xl backdrop-blur-2xl transition hover:-translate-y-1 hover:bg-white/10" onClick={() => setCurrentPage("quote")}>
+                  <div className="h-full bg-[linear-gradient(135deg,rgba(255,255,255,0.14),rgba(255,255,255,0.04))] p-6 md:p-8">
+                    <p className="text-sm uppercase tracking-[0.24em] text-white/45">Devis</p>
+                    <h3 className="mt-4 text-2xl font-semibold text-white">Construire le devis</h3>
+                    <p className="mt-3 text-sm leading-6 text-white/72">Choisir les prestations, voir le montant et envoyer la demande directement.</p>
+                  </div>
+                </button>
+                <button type="button" className="group overflow-hidden rounded-[34px] border border-white/10 bg-white/8 text-left shadow-xl backdrop-blur-2xl transition hover:-translate-y-1 hover:bg-white/10" onClick={() => setCurrentPage("packages")}>
+                  <div className="h-full bg-[linear-gradient(135deg,rgba(255,255,255,0.14),rgba(255,255,255,0.04))] p-6 md:p-8">
+                    <p className="text-sm uppercase tracking-[0.24em] text-white/45">Packages</p>
+                    <h3 className="mt-4 text-2xl font-semibold text-white">Voir les packages</h3>
+                    <p className="mt-3 text-sm leading-6 text-white/72">Startup, Medium, Premium. Une lecture simple, professionnelle et rassurante.</p>
+                  </div>
+                </button>
+              </div>
+            </section>
+
+            {renderPortfolio()}
+
+            <section className="overflow-hidden rounded-[34px] border border-white/10 bg-gradient-to-r from-white/10 to-white/5 shadow-xl backdrop-blur-2xl">
+              <div className="grid gap-6 p-6 md:grid-cols-[0.9fr_1.1fr] md:p-8">
+                <div>
+                  <p className="text-sm uppercase tracking-[0.28em] text-white/45">Contact</p>
+                  <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-5xl">Parler du projet.</h2>
+                </div>
+                <div className="space-y-3 text-white/75">
+                  <p>Instagram, WhatsApp, appel ou rendez-vous au bureau.</p>
+                  <p>+213 561 10 93 16</p>
+                  <p>Tizi Ouzou / Alger / projets à distance</p>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {currentPage === "quote" && <div className="pb-16">{renderQuotePage()}</div>}
+        {currentPage === "packages" && <div className="pb-16">{renderPackages()}</div>}
+        {currentPage === "admin" && <div className="pb-16">{renderAdmin()}</div>}
+      </div>
+    </div>
+  );
+}
